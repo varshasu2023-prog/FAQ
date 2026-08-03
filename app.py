@@ -217,5 +217,175 @@ def load_documents_into_vectorstore(uploaded_files=None):
     vectorstore = FAISS.from_documents(docs, embeddings)
 
     return f"✅ Knowledge Base updated with {len(docs)} document chunks!"
-  set GROQ_BEC_API_KEY=your_groq_bec_api_key
-streamlit run app.py
+  import streamlit as st
+from langchain_groq import ChatGroq
+from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
+from langchain_core.output_parsers import StrOutputParser
+from langchain_community.chat_message_histories import ChatMessageHistory
+
+# ---------------------------------------------------------------------------
+# 3. Groq LLM & LCEL RAG Pipeline
+# ---------------------------------------------------------------------------
+
+# API Key
+groq_bec_api_key = st.secrets["GROQ_BEC_API_KEY"]
+# or:
+# groq_bec_api_key = os.getenv("GROQ_BEC_API_KEY")
+
+# LLM
+llm = ChatGroq(
+    groq_api_key=groq_bec_api_key,   # Use groq_api_key
+    model_name="llama-3.3-70b-versatile",
+    temperature=0.3
+)
+
+# Session Store
+if "store" not in st.session_state:
+    st.session_state.store = {}
+
+def get_session_history(session_id: str):
+    if session_id not in st.session_state.store:
+        st.session_state.store[session_id] = ChatMessageHistory()
+
+    return st.session_state.store[session_id]
+
+
+def create_rag_chain(persona_name: str, retrieved_context: str):
+
+    system_instruction = SALES_PROMPTS.get(
+        persona_name,
+        SALES_PROMPTS["PragyanAI Student Counselor"]
+    ).format(context=retrieved_context)
+
+    prompt = ChatPromptTemplate.from_messages([
+        ("system", system_instruction),
+        MessagesPlaceholder(variable_name="history"),
+        ("human", "{input}")
+    ])
+
+    return prompt | llm | StrOutputParser()
+    st.title("🤖 PragyanAI RAG Chatbot")
+
+persona_name = st.sidebar.selectbox(
+    "Choose Assistant",
+    list(SALES_PROMPTS.keys())
+)
+
+if "messages" not in st.session_state:
+    st.session_state.messages = []
+
+# Display previous messages
+for msg in st.session_state.messages:
+    with st.chat_message(msg["role"]):
+        st.markdown(msg["content"])
+
+# User input
+if prompt := st.chat_input("Ask anything about PragyanAI..."):
+
+    st.session_state.messages.append(
+        {
+            "role": "user",
+            "content": prompt
+        }
+    )
+
+    with st.chat_message("user"):
+        st.markdown(prompt)
+
+    answer = respond(prompt, persona_name)
+
+    st.session_state.messages.append(
+        {
+            "role": "assistant",
+            "content": answer
+        }
+    )
+
+    with st.chat_message("assistant"):
+        st.markdown(answer)
+
+import streamlit as st
+
+# ---------------------------------------------------------------------------
+# Streamlit User Interface
+# ---------------------------------------------------------------------------
+
+st.set_page_config(
+    page_title="PragyanAI Intelligent Assistant",
+    page_icon="🤖",
+    layout="wide"
+)
+
+st.title("🤖 PragyanAI Conversational Sales & FAQ Assistant")
+st.write(
+    "Answers program questions based on the **PragyanAI Presentation & FAQ Sheet**."
+)
+
+# ---------------- Sidebar ----------------
+with st.sidebar:
+
+    st.header("Settings")
+
+    persona_selector = st.selectbox(
+        "Select PragyanAI Persona",
+        list(SALES_PROMPTS.keys()),
+        index=0
+    )
+
+    uploaded_files = st.file_uploader(
+        "Upload Additional PDFs or Excel Sheets",
+        type=["pdf", "xlsx", "xls"],
+        accept_multiple_files=True
+    )
+
+    if st.button("📚 Update Knowledge Base"):
+
+        status = load_documents_into_vectorstore(uploaded_files)
+        st.success(status)
+
+    if st.button("🗑 Clear Memory"):
+
+        clear_chat_history(persona_selector)
+        st.success("Chat history cleared.")
+        st.rerun()
+
+# ---------------- Chat History ----------------
+if "messages" not in st.session_state:
+    st.session_state.messages = []
+
+# Display previous messages
+for msg in st.session_state.messages:
+    with st.chat_message(msg["role"]):
+        st.markdown(msg["content"])
+
+# ---------------- Chat Input ----------------
+user_input = st.chat_input("Ask anything about PragyanAI...")
+
+if user_input:
+
+    # Show user message
+    st.session_state.messages.append(
+        {
+            "role": "user",
+            "content": user_input
+        }
+    )
+
+    with st.chat_message("user"):
+        st.markdown(user_input)
+
+    # Generate response
+    with st.spinner("Thinking..."):
+
+        answer = respond(user_input, persona_selector)
+
+    # Show assistant response
+    st.session_state.messages.append(
+        {
+            "role": "assistant",
+            "content": answer
+        }
+    )
+
+    with st.chat_message("assistant"):
+        st.markdown(answer)
