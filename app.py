@@ -229,7 +229,7 @@ from langchain_community.chat_message_histories import ChatMessageHistory
 # ---------------------------------------------------------------------------
 
 # API Key
-groq_bec_api_key = st.secrets["GROQ_BEC_API_KEY"]
+GROQ_BEC_API_KEY = "your_groq_bec_api_key"
 # or:
 # groq_bec_api_key = os.getenv("GROQ_BEC_API_KEY")
 
