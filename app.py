@@ -3,6 +3,28 @@ import pandas as pd
 from io import BytesIO
 
 st.title("PragyanAI FAQ Excel Generator")
+import os
+from dotenv import load_dotenv
+import streamlit as st
+
+load_dotenv()
+
+groq_bec_api_key = st.secrets.get(
+    "GROQ_BEC_API_KEY",
+    os.getenv("GROQ_BEC_API_KEY")
+)
+
+if not groq_bec_api_key:
+    st.error(
+        "❌ GROQ API key not found. Add GROQ_BEC_API_KEY to .env or Streamlit secrets."
+    )
+    st.stop()
+
+llm = ChatGroq(
+    groq_bec_api_key=groq_bec_api_key,
+    model_name="llama-3.3-70b-versatile",
+    temperature=0.3
+)
 
 faq_data = {
     "Category": [
