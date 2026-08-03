@@ -235,7 +235,7 @@ GROQ_BEC_API_KEY = "your_groq_bec_api_key"
 
 # LLM
 llm = ChatGroq(
-    groq_bec_api_key=groq_bec_api_key,   # Use groq_api_key
+    groq_api_key=groq_bec_api_key,
     model_name="llama-3.3-70b-versatile",
     temperature=0.3
 )
