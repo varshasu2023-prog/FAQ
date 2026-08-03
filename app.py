@@ -217,7 +217,7 @@ def load_documents_into_vectorstore(uploaded_files=None):
     vectorstore = FAISS.from_documents(docs, embeddings)
 
     return f"✅ Knowledge Base updated with {len(docs)} document chunks!"
-  import streamlit as st
+import streamlit as st
 from langchain_groq import ChatGroq
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_core.output_parsers import StrOutputParser
